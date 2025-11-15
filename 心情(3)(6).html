@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>心情互动页面</title>
+    <style>
+        /* 原有样式不变，仅添加音频隐藏样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            height: 100vh;
+            background: #fff;
+            background-image: url("https://oss.tkrmw.com/retain1d/3699/2025-11/1762749238_5956.png");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            font-family: "微软雅黑", Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            padding: 20px;
+        }
+        /* 隐藏音频元素（关键） */
+        audio {
+            display: none !important;
+        }
+        /* 以下是原有样式，保持不变 */
+        .title {
+            font-size: clamp(20px, 5vw, 28px);
+            color: #e54d42;
+            opacity: 0;
+            animation: fadeIn 0.8s forwards;
+            text-shadow: 0 1px 3px rgba(255,255,255,0.9);
+            text-align: center;
+        }
+        .options {
+            margin-top: clamp(40px, 10vw, 80px);
+            display: flex;
+            gap: clamp(30px, 8vw, 120px);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .option-btn {
+            font-size: clamp(18px, 4vw, 24px);
+            padding: clamp(12px, 3vw, 10px) clamp(20px, 5vw, 25px);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            background-color: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            border: none;
+            outline: none;
+            touch-action: manipulation;
+        }
+        .option-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .option-btn:active {
+            transform: scale(0.98);
+        }
+        .option-energetic {
+            color: #ff7d00;
+        }
+        .option-down {
+            color: #666;
+        }
+        .popup {
+            position: absolute;
+            padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 20px);
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+            font-size: clamp(12px, 2.5vw, 14px);
+            opacity: 0;
+            transform: scale(0.9);
+            transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
+            pointer-events: none;
+            z-index: 9999;
+            white-space: nowrap;
+            max-width: calc(100% - 40px);
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .popup.positive {
+            color: #ff7d00;
+            border: 1px solid #ffd5b5;
+            background: #fff8f2;
+        }
+        .popup.encourage {
+            color: #4096ff;
+            border: 1px solid #b3d8ff;
+            background: #f0f7ff;
+        }
+        .popup.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        @media (max-aspect-ratio: 1/1) {
+            body {
+                background-size: auto 100vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="title">嘿！今天你过得好不？</div>
+    <div class="options">
+        <div class="option-btn option-energetic">元气满满</div>
+        <div class="option-btn option-down">没精打采</div>
+    </div>
+
+    <!-- 核心：隐藏的音频元素（使用在线链接） -->
+    <audio id="backgroundMusic" loop preload="auto" autoplay muted>
+        <!-- 替换为你的在线音乐MP3链接（必须是支持跨域的链接） -->
+        <source src="https://s31.aconvert.com/convert/p3r68-cdx67/6vbdf-n09i3.opus" type="audio/mpeg">
+        <source src="https://s19.aconvert.com/convert/p3r68-cdx67/o64v2-dd8hv.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        // 原有逻辑保持不变，新增音乐自动播放逻辑
+        setTimeout(() => {
+            document.querySelector('.options').style.animation = 'fadeIn 0.8s forwards';
+        }, 3000);
+
+        // 音乐自动播放核心代码（解决浏览器限制）
+        const audio = document.getElementById('backgroundMusic');
+        // 页面加载后尝试解锁播放
+        window.addEventListener('DOMContentLoaded', () => {
+            // 先取消静音（autoplay需配合muted绕过部分限制，再解锁）
+            audio.muted = false;
+            audio.play().catch(() => {
+                // 若失败，监听用户首次点击页面后播放（浏览器强制要求）
+                document.body.addEventListener('click', () => {
+                    audio.play().catch(err => console.log('播放失败：', err));
+                }, { once: true });
+            });
+        });
+
+       
+        // 以下是原有逻辑，保持不变
+        function filterEmptyTexts(list) {
+            return list.filter(text => text.trim() !== '');
+        }
+
+        const positiveTextsRaw = [ "你超棒的！", "元气值拉满~", "好运加载中！", "你笑起来真好看！",
+            "加油，你能搞定！", "今天闪闪发光！", "快乐围绕着你~",
+            "你值得所有美好！", "靠近目标一步！", "活力满满一整天！",
+            "努力终将回报！", "你真的很优秀！", "生活因你精彩~",
+            "保持这份热情！", "你是小太阳呀！", "开心满分今天！",
+            "你的存在有意义！", "继续闪闪发光！", "你比想象中强！",
+            "状态超棒哒！", "好运偏爱积极的你！", "被温柔以待呀！",
+            "小确幸在路上！", "笑容治愈一切~", "元气前进吧！",
+            "每件事都很棒！", "发光发热的你！", "快乐追着你跑~",
+            "独一无二的美好！", "全力以赴每刻！", "活力十足今天！",
+            "努力值得看见！", "积极让生活明亮！", "保持可爱热情！",
+            "你是超级英雄！", "快乐已送达！", "好运属于你！",
+            "充满动力呀！", "正能量感染他人！", "保持这份热爱！",
+            "生活里的小确幸！", "状态简直完美！", "好运不期而遇！",
+            "积极带来惊喜！", "元气满满哦！", "你值得更好的！",
+            "温暖明亮的生活！", "保持向上力量！", "你是幸运星！",
+            "今天也在发光！", "快乐一直陪伴！", "努力不会白费！",
+            "活力值爆表！", "独一无二的宝藏！", "未来可期呀！",
+            "笑容今日最佳！", "好运已签收！", "被温柔包围！",
+            "因你生活精彩！", "保持元气状态！", "你是自己的光！",
+            "努力发光的你！", "快乐不请自来！", "优秀有目共睹！",
+            "动力已充满！", "生活里的小美好！", "保持这份热情！",
+            "积极带来好运！", "开心到飞起！", "被世界温柔待！",
+            "乐观让生活美！", "可爱活力满满！", "你是自己的英雄！",
+            "快乐值拉满！", "努力会结果！", "元气向前冲！",
+            "生活小确幸！", "状态真的很棒！", "好运常伴左右！",
+            "正能量超有感！", "充满希望今天！", "值得所有美好！",
+            "生活充满阳光！", "保持向上热情！", "你是幸运符！",
+            "闪闪发光的你！", "快乐围绕你转！", "优秀值得看见！",
+            "元气满分呀！", "好运正在降临！", "你超厉害的！",
+            "今天超给力！", "笑容超治愈！", "努力有回报！",
+            "生活超美好！", "热情永不减！", "你超可爱的！",
+            "开心无上限！", "存在超有意义！", "继续发光吧！",
+            "潜力无限大！", "状态一级棒！", "好运连连来！",
+            "温柔待自己！", "小确幸已签收！", "治愈一切烦恼！",
+            "勇敢向前冲！", "每件事都给力！", "温暖身边人！",
+            "快乐不打烊！", "美好如期至！", "全力以赴呀！",
+            "活力不重样！", "努力被看见！", "生活亮晶晶！",
+            "可爱不打折！", "热情似火焰！", "幸运常相伴！",
+            "动力十足呀！", "感染身边人！", "热爱不降温！",
+            "小美好不断！", "完美状态呀！", "惊喜在路上！",
+            "元气不缺席！", "更好在等你！", "生活暖洋洋！",
+            "向上不停止！", "幸运围着你！", "发光不设限！",
+            "陪伴不缺席！", "付出有回报！", "活力满格呀！",
+            "宝藏不隐藏！", "未来超可期！", "笑容超甜呀！",
+            "好运不错过！", "温柔不缺席！", "精彩不重复！",
+            "元气不停歇！", "自己的光呀！", "发光不褪色！",
+            "快乐不缺席！", "优秀不低调！", "动力不间断！",
+            "美好不重样！", "热情不减退！", "好运不辜负！",
+            "开心不重样！", "温柔不打烊！", "生活超精彩！",
+            "活力不打折！", "努力不白费！", "幸运不迷路！",
+            "惊喜不重样！", "元气不打折！", "值得不辜负！",
+            "阳光不缺席！", "热情不降温！", "幸运不设限！"
+       ];
+        const encourageTextsRaw = ["休息一下就好~", "你已经很努力啦！", "慢慢来，别急",
+            "明天会更顺的！", "累了就歇一歇~", "别否定自己呀！",
+            "乌云会散的！", "一切都会好起来", "被温柔对待呀！",
+            "你已经很好了", "偶尔低落很正常", "做得足够好了！",
+            "生活慢慢变好", "好好照顾自己呀", "抱抱辛苦的你",
+            "不是一个人哦", "我们不赶时间", "别给自己压力",
+            "难过就哭出来", "休息好再出发", "好好对待自己",
+            "舒服最重要呀", "努力我看到了", "低落是小插曲",
+            "耐心一点呀", "我在这里听你说", "别逼自己坚强",
+            "温柔在等你", "不用一直坚强", "你真的很好",
+            "慢慢来更稳", "付出不辜负", "难过我陪着你",
+            "放松不是偷懒", "你在慢慢变好", "你超棒的呀",
+            "你比困难强", "不用时刻紧绷", "比想象中好",
+            "睡一觉就好", "被温柔包围呀", "一步一步来",
+            "坚持我看到了", "小插曲而已", "照顾好自己",
+            "别苛责自己", "允许不开心", "充电不是浪费",
+            "你不是孤单的", "脆弱也没关系", "转机在路上",
+            "给自己点赞呀", "不跟别人比", "呵护自己感受",
+            "看看身边风景", "别给自己压力", "我当倾听者呀",
+            "放松为了前进", "慢慢变好呀", "你真的很好",
+            "生活有点甜呀", "给点时间自己", "不用硬撑哦",
+            "歇一歇再回", "好好爱自己呀", "还有很多时间",
+            "付出我记着", "偶尔低落别怕", "休息好有力量",
+            "别再逼自己了", "给自己个拥抱", "蓄力不是放弃",
+            "别跟自己较劲", "温柔时刻在", "不用一直前进",
+            "别怀疑自己呀", "慢慢来更踏实", "努力不白费的",
+            "我陪着你呀", "放松很必要", "再坚持一下下",
+            "你超优秀的", "你比困难强", "不用时刻完美",
+            "比想象中好呀", "醒来新一天", "从自己开始温柔",
+            "一步一步走呀", "坚持超了不起", "低落是小假期",
+            "照顾自己最重要", "别苛责自己啦", "允许不开心会儿",
+            "为了走更远的路", "我一直在这里", "脆弱也可爱呀",
+            "转机快到啦", "给自己放个假", "不跟别人比进度",
+            "感受很重要呀", "看看身边美好", "别给自己压力啦",
+            "我当你的树洞", "放松为了更好", "慢慢变好哦",
+            "你真的超级好", "休息不是偷懒", "努力被看见啦",
+            "别急慢慢等", "好好心疼自己", "不用假装坚强",
+            "难过会过去的", "你已经很棒了", "生活有温柔呀",
+            "不用逼自己呀", "慢慢来更稳呀", "付出有回报的",
+            "陪着你不离开", "偶尔放松没事", "越来越好啦",
+            "你超厉害的", "给自己点空间", "做得比想象好",
+            "睡一觉就轻松", "温柔待自己呀", "一步一步前进",
+            "坚持我知道的", "小插曲会过", "照顾好自己呀",
+            "别对自己苛刻", "不开心没关系", "充电很重要呀",
+            "孤单有我在", "脆弱不可怕", "转机快要来",
+            "你超棒的呀", "不用比别人快", "感受要呵护呀",
+            "风景在身边呀", "压力放一放", "倾听你的难过",
+            "前进需要休息", "变好不用急", "你真的很好呀",
+            "生活有甜味呀", "给自己时间呀", "坚强不用装",
+            "歇会儿再出发", "爱自己最重要", "时间很充足呀",
+            "付出记心里呀", "低落不可怕", "休息有力量呀",
+            "别逼自己啦", "拥抱自己呀", "放弃不是哦",
+            "别较劲自己", "温柔在身边呀", "前进不用急",
+            "相信自己呀", "踏实慢慢来", "努力不会白搭",
+            "陪着你呀", "放松很重要", "再坚持下呀",
+            "优秀的你呀", "困难打不倒", "完美不用呀",
+            "比想的好呀", "新一天来啦", "温柔从自己",
+            "慢慢走呀", "坚持了不起", "假期很短暂",
+            "自己最重要", "苛责不要呀", "不开心会儿",
+            "更远的路呀", "一直在这里", "可爱的脆弱",
+            "转机快到", "放假没关系", "进度不用比",
+            "重要的感受", "身边有美好", "压力放下呀",
+            "树洞在这里", "更好的前进", "变好呀",
+            "超级好的你"];
+
+        const positiveTexts = filterEmptyTexts(positiveTextsRaw);
+        const encourageTexts = filterEmptyTexts(encourageTextsRaw);
+
+       // 全局变量声明
+let popups = [];
+let isCreating = false; // 防止重复创建的锁
+
+function createPopups(textList, type) {
+    // 防止短时间内重复点击
+    if (isCreating) return;
+    isCreating = true;
+
+    // 清除已有弹窗
+    popups.forEach(p => {
+        if (document.body.contains(p)) {
+            document.body.removeChild(p);
+        }
+    });
+    popups = [];
+
+    // 确保内容充足（最多300个，避免性能问题）
+    let targetTexts = [...textList];
+    const maxPopups = 300;
+    if (targetTexts.length < 150) {
+        while (targetTexts.length < 150 && targetTexts.length < maxPopups) {
+            targetTexts.push(targetTexts[Math.floor(Math.random() * targetTexts.length)]);
+        }
+    } else {
+        targetTexts = targetTexts.slice(0, maxPopups);
+    }
+
+    // 计算总时长，用于解除创建锁
+    const totalDuration = targetTexts.length * 80 + 5000 + 800;
+    setTimeout(() => isCreating = false, totalDuration);
+
+    // 生成弹窗
+    targetTexts.forEach((text, index) => {
+        setTimeout(() => {
+            const popup = document.createElement('div');
+            popup.className = `popup ${type}`;
+            popup.textContent = text.trim();
+            popup.style.visibility = 'hidden'; // 临时隐藏，用于计算尺寸
+            
+            // 先添加到DOM以获取准确尺寸
+            document.body.appendChild(popup);
+            
+            // 动态计算弹窗位置（适配各种屏幕）
+            const popupWidth = popup.offsetWidth || 100;
+            const popupHeight = popup.offsetHeight || 40;
+            const maxLeft = window.innerWidth - popupWidth - 20;
+            const maxTop = window.innerHeight - popupHeight - 20;
+            const left = Math.max(10, Math.random() * maxLeft);
+            const top = Math.max(10, Math.random() * maxTop);
+
+            // 设置位置并恢复可见性
+            popup.style.left = `${left}px`;
+            popup.style.top = `${top}px`;
+            popup.style.visibility = 'visible';
+            
+            popups.push(popup);
+
+            // 显示弹窗（触发动画）
+            setTimeout(() => popup.classList.add('show'), 50);
+
+            // 5秒后隐藏并移除
+            setTimeout(() => {
+                popup.classList.remove('show');
+                
+                // 监听动画结束事件，更可靠地处理移除时机
+                const handleTransitionEnd = (e) => {
+                    if (['opacity', 'transform'].includes(e.propertyName)) {
+                        if (document.body.contains(popup)) {
+                            document.body.removeChild(popup);
+                            popups = popups.filter(item => item !== popup);
+                        }
+                        popup.removeEventListener('transitionend', handleTransitionEnd);
+                    }
+                };
+                
+                popup.addEventListener('transitionend', handleTransitionEnd);
+            }, 5000);
+        }, index * 80);
+    });
+}
+
+// 绑定点击事件
+document.addEventListener('DOMContentLoaded', () => {
+    const energeticBtn = document.querySelector('.option-energetic');
+    const downBtn = document.querySelector('.option-down');
+    
+    if (energeticBtn) {
+        energeticBtn.addEventListener('click', () => {
+            createPopups(positiveTexts, 'positive');
+        });
+    }
+    
+    if (downBtn) {
+        downBtn.addEventListener('click', () => {
+            createPopups(encourageTexts, 'encourage');
+        });
+    }
+
+    // 窗口大小变化时重新计算弹窗位置
+    window.addEventListener('resize', () => {
+        popups.forEach(popup => {
+            const popupWidth = popup.offsetWidth || 100;
+            const popupHeight = popup.offsetHeight || 40;
+            const maxLeft = window.innerWidth - popupWidth - 20;
+            const maxTop = window.innerHeight - popupHeight - 20;
+            
+            popup.style.left = `${Math.max(10, Math.min(parseFloat(popup.style.left), maxLeft))}px`;
+            popup.style.top = `${Math.max(10, Math.min(parseFloat(popup.style.top), maxTop))}px`;
+        });
+    });
+});
+
+    </script>
+</body>
+</html>
